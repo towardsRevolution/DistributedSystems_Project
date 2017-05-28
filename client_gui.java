@@ -1,6 +1,9 @@
-package DistributedSystems_Project;
-
+/**
+ * Author: Aditya Pulekar
+ * Author: Vishal Garg
+ */
 import javax.swing.*;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
@@ -8,13 +11,17 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 
-/**
- * Created by adityapulekar on 5/1/17.
- */
-public class client_gui extends JFrame implements ActionListener {
+
+public class client_gui implements ActionListener {  // extends JFrame implements ActionListener
     JButton JB_C; JButton JB_S; JButton JB_E; JButton JB_Reset;
     JTextField textF_Search;
-    JTextField textF;
+    //JTextField textF;
+    JTextArea textA;
+    JTextArea textA_suggestions;
+    JFrame frame;
+    JPanel panel_searchField;
+    //JPanel panel_searchResult;
+    //JPanel panel_searchSuggestions;
 
 
     public client_gui(){
@@ -22,94 +29,138 @@ public class client_gui extends JFrame implements ActionListener {
         JB_S = new JButton("Search");
         JB_E = new JButton("Edit");
         JB_Reset = new JButton("Reset");
-        JB_C.setBounds(130,300,100,40);
-        JB_S.setBounds(130,400,100,40);
-        JB_E.setBounds(250,300,100,40);
-        JB_Reset.setBounds(250,400,100,40);
+        frame = new JFrame();
+        panel_searchField = new JPanel();
+        /*panel_searchResult = new JPanel();
+        panel_searchSuggestions = new JPanel();*/
+
+        panel_searchField.setBounds(5,53,90,30);
         textF_Search = new JTextField();
-        textF = new JTextField();
-        textF_Search.setBounds(120,50,350,40);
-        textF.setBounds(120,100,350,150);
+        JLabel tfield_label = new JLabel("SEARCH :");
+        panel_searchField.add(tfield_label);
+        frame.add(panel_searchField);
+
+        textA_suggestions = new JTextArea();
+        textA_suggestions.setLineWrap(true);
+        JLabel ta_sug_label = new JLabel("DID YOU MEAN...");
+        ta_sug_label.setAlignmentX(560);
+        ta_sug_label.setAlignmentY(80);
+        //panel_searchSuggestions.add(ta_sug_label);
+        JScrollPane textA_suggestions_scroll = new JScrollPane(textA_suggestions);
+
+
+
+        textA = new JTextArea();
+        textA.setLineWrap(true);
+        JLabel ta_label = new JLabel("SEARCH RESULT");
+        ta_label.setAlignmentX(25);
+        ta_label.setAlignmentY(200);
+        //panel_searchResult.add(ta_label);
+        JScrollPane textA_scroll = new JScrollPane(textA);
+
+        JB_C.setBounds(110,470,100,40);
+        JB_S.setBounds(110,570,100,40);
+        JB_E.setBounds(230,470,100,40);
+        JB_Reset.setBounds(230,570,100,40);
+        textF_Search.setBounds(100,50,350,40);
+        //textA.setBounds(100,100,350,150);
+        //textA_suggestions.setBounds(560,60,200,150);
+        textA_scroll.setBounds(50,100,500,350);
+        textA_suggestions_scroll.setBounds(560,100,200,200);
+
         JB_Reset.addActionListener(this);
         JB_S.addActionListener(this);
         JB_E.addActionListener(this);
         JB_C.addActionListener(this);
-        add(JB_C);add(JB_E);add(JB_S);add(JB_Reset);add(textF);add(textF_Search);
-        setSize(700,700);
-        setLayout(null);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+        frame.add(textA_suggestions_scroll);
+        frame.add(textA_scroll);
+        frame.add(JB_C);frame.add(JB_E);frame.add(JB_S);
+        frame.add(JB_Reset);frame.add(textF_Search);//frame.add(textA_suggestions);frame.add(textA);
+        frame.add(ta_label); frame.add(ta_sug_label);
+        frame.add(panel_searchField);//frame.add(panel_searchSuggestions);
+        //frame.add(panel_searchResult);
+        //frame.add(panel_searchSuggestions);
+
+        frame.setSize(800,700);
+        frame.setLayout(null);
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     }
 
-    public void performSearch(ObjectOutputStream out, ObjectInputStream in) throws IOException, ClassNotFoundException{
-        //Picks up the content from the search area.
-        String query = textF_Search.getText();
-
-        //Sending the "Search" tag. (READ op)
-        out.writeObject("Search");
-
-        //Sending search query to the main server.
-        out.writeObject(query);
-
-        //Receiving file from the main server for reading.
-        byte[] bytesFile_rec = (byte[]) in.readObject();
-        textF.setText(new String(bytesFile_rec));
-    }
-
-    @Override
     public void actionPerformed(ActionEvent ae){
-        try {
+        String serverToConnect = "yes.cs.rit.edu"; //Default server to connect
+        int portToConnect = 1234;				   //Default port to connect
+        Socket communicaterWithServer;
+        ObjectOutputStream out;
+        ObjectInputStream in;
+        boolean fileFound = false;
+        String request, response;
+        if (ae.getSource() == JB_Reset){ //For Reset
+            textA.setText("");
+            textF_Search.setText("");
+            textA.setEditable(true);
+            //validate();
+        }else{
+            try {
+                System.out.println("\nConnecting to: "+serverToConnect+" : "+portToConnect);
+                communicaterWithServer = new Socket(serverToConnect, portToConnect);
+                System.out.println("Connected with the Main Server!!!");
+                out = new ObjectOutputStream(communicaterWithServer.getOutputStream());
+                in = new ObjectInputStream(communicaterWithServer.getInputStream());
+                String fileName = textF_Search.getText();
+                //Get what is the request
+                if (ae.getSource() == JB_C) {
+                    request = "Contribution";
+                    String newContribution = textA.getText();
+                    out.writeObject(request);
+                    out.writeObject(fileName);
+                    out.writeObject(newContribution);
+                    //response = (String) in.readObject();
+                }else{
+                    request = "Search";
+                    out.writeObject(request);
+                    out.writeObject(fileName);
 
-            if (ae.getSource() == JB_C) {
-                Socket clientSoc = new Socket("yes.cs.rit.edu", 1234);
-                System.out.println("Connected to glados: " + clientSoc);
-                ObjectOutputStream out = new ObjectOutputStream(clientSoc.getOutputStream());
-                ObjectInputStream in = new ObjectInputStream(clientSoc.getInputStream());
+                    response = (String)in.readObject();
 
-                //Picks up the content from the text area.
-                String newContribution = textF.getText();
+                    //Now here the client gets to know which host (having the particular Manager) to connect to.
+                    while(response.equalsIgnoreCase("connect")){
+                        serverToConnect = (String)in.readObject();
+                        portToConnect = (Integer)in.readObject();
+                        System.out.println("Re-Routing to: "+serverToConnect+" : "+portToConnect);
+                        //Make the connection with the new host.
+                        communicaterWithServer = new Socket(serverToConnect, portToConnect);
+                        out = new ObjectOutputStream(communicaterWithServer.getOutputStream());
+                        in = new ObjectInputStream(communicaterWithServer.getInputStream());
+                        out.writeObject(request);
+                        out.writeObject(fileName);
+                        response = (String)in.readObject();
+                    }
 
-                //Sending the "Contribution" tag.
-                out.writeObject("Contribution");
+                    textA.setText(response);
+                    //textF.setText(response);
 
-                //Sending the new Contribution to the main server.
-                out.writeObject(newContribution);
+                }
 
-                //Receiving file from the main server for reading.
-                String response = (String) in.readObject();
-                System.out.println("\n" + response);
+                //Set editable for edit
+                if(ae.getSource() == JB_E){
+                    textA.setEditable(true);
+                } else if(ae.getSource() == JB_S){
+                    textA.setEditable(false);
+                }
 
+            } catch (IOException | ClassNotFoundException e){
+                //e.printStackTrace();
             }
-            if (ae.getSource() == JB_S || ae.getSource() == JB_E) {
-                Socket clientSoc = new Socket("yes.cs.rit.edu", 1234);
-                System.out.println("Connected to glados: " + clientSoc);
-                ObjectOutputStream out = new ObjectOutputStream(clientSoc.getOutputStream());
-                ObjectInputStream in = new ObjectInputStream(clientSoc.getInputStream());
-
-                //Fetches the file from the main server (OR Entry point server).
-                performSearch(out,in);
-
-                if(ae.getSource() == JB_S)
-                    textF.setEditable(false);
-                else
-                    textF.setEditable(true);
-
-            }
-            if (ae.getSource() == JB_Reset){ //For Reset
-
-                textF.setText("");
-                textF_Search.setText("");
-                //validate();
-            }
-            //revalidate();
-        } catch (IOException | ClassNotFoundException e){
-            e.printStackTrace();
         }
+
     }
 
     public static void main(String[] args){
         client_gui gui = new client_gui();
-        gui.setVisible(true);
+        gui.frame.setVisible(true);
         System.out.println("DONE WITH THE EXECUTION!");
 
     }
 }
+
