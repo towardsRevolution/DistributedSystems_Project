@@ -1,6 +1,3 @@
-# Distributed Systems Term Project
-# Advisor : Professor Kwon
-
 #Project : Wikipedia-like service for RIT
 
 - Login into any RIT CS machine.
